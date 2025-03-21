@@ -16,6 +16,23 @@ export async function doSocialLogin(formdata: any) {
   await signIn(action, { redirectTo: "/home" });
   console.log(action);
 }
+
+export async function doCredentialsLogin(formdata: any) {
+  const validatedFields = LoginSchema.safeParse(formdata);
+  try {
+    const response = await signIn("credentials", {
+      email: formdata.email,
+      password: formdata.password,
+      redirect: false,
+    });
+    // console.log(response);
+    return { success: "Successfuly Logged in!" };
+  } catch (error) {
+    // console.log(error);
+    return { error: "Invalid Credentials!" };
+  }
+}
+
 export async function doLogout() {
   await signOut({ redirectTo: "/" });
 }

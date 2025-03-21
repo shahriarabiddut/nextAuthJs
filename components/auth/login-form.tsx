@@ -16,7 +16,7 @@ import CardWrapper from "@/components/auth/card-wrapper";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/form-error";
 import { FormSuccess } from "@/components/form-success";
-import { login } from "@/actions/login";
+import { doCredentialsLogin, login } from "@/actions/login";
 import { useState, useTransition } from "react";
 
 export default function LoginForm() {
@@ -34,7 +34,11 @@ export default function LoginForm() {
     setError("");
     setSuccess("");
     startTransition(() => {
-      login(values).then((data) => {
+      // login(values).then((data) => {
+      //   setError(data.error);
+      //   setSuccess(data.success);
+      // });
+      doCredentialsLogin(values).then((data) => {
         setError(data.error);
         setSuccess(data.success);
       });
