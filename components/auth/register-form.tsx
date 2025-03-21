@@ -16,13 +16,15 @@ import CardWrapper from "@/components/auth/card-wrapper";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/form-error";
 import { FormSuccess } from "@/components/form-success";
-import { register } from "@/actions/register";
+// import { register } from "@/actions/register";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/router";
 
 export default function RegisterForm() {
   const [error, setError] = useState<string | undefined>("");
   const [success, setSuccess] = useState<string | undefined>("");
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const form = useForm<z.infer<typeof RegisterSchema>>({
     resolver: zodResolver(RegisterSchema),
     defaultValues: {
@@ -31,14 +33,27 @@ export default function RegisterForm() {
       name: "",
     },
   });
-  const onSubmit = (values: z.infer<typeof RegisterSchema>) => {
+  const onSubmit = async (values: z.infer<typeof RegisterSchema>) => {
     setError("");
     setSuccess("");
-    startTransition(() => {
-      register(values).then((data) => {
-        setError(data.error);
-        setSuccess(data.success);
-      });
+    startTransition(async () => {
+      console.log(values);
+      try {
+        const response = await fetch(`/api/register`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(values),
+        });
+        console.log(response);
+      } catch (e) {
+        console.error(e);
+      }
+      // register(values).then((data) => {
+      //   setError(data.error);
+      //   setSuccess(data.success);
+      // });
     });
   };
   return (

@@ -17,7 +17,7 @@ export const {
   },
   providers: [
     Credentials({
-      async authorize(credentials: z.infer<typeof LoginSchema>): any {
+      async authorize(credentials: z.infer<typeof LoginSchema>) {
         if (credentials === null) return null;
         try {
           const user = getUserByEmail(credentials?.email);
