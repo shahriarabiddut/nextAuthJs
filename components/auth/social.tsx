@@ -11,7 +11,7 @@ export default function Social() {
       {/* Add New Provider */}
       {/* 1. Just Add a button change value properly! */}
       {/* 2. Import the provider in auth.ts properly and setup with proper keys! */}
-      {/* 2. That's All ! */}
+      {/* 3. That's All ! */}
       <form action={doSocialLogin} className="grid grid-cols-2 w-full gap-2">
         <Button
           size={"lg"}
