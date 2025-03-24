@@ -2,9 +2,10 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import Credentials from "next-auth/providers/credentials";
-import { getUserByEmail } from "@/app/data/users";
 import { LoginSchema } from "@/schemas";
 import * as z from "zod";
+import { User } from "@/model/user-model";
+import bcrypt from "bcrypt";
 
 export const {
   handlers: { GET, POST },
@@ -18,15 +19,48 @@ export const {
   providers: [
     Credentials({
       async authorize(credentials: z.infer<typeof LoginSchema>) {
-        if (credentials === null) return null;
+        if (!credentials) {
+          return null;
+        }
+
         try {
-          const user = getUserByEmail(credentials?.email);
-          if (!user) return null;
-          const isMatch = user?.password === credentials?.password;
-          if (!isMatch) return null;
+          // Find user by email
+          const user = await User.findOne({ email: credentials.email }).select(
+            "+password"
+          );
+          console.log(user);
+
+          // If no user is found, return null
+          if (!user) {
+            console.log("User not found");
+            return null;
+          }
+          // Ensure passwords exist
+          if (!credentials.password || !user.password) {
+            console.log("Password is missing");
+            console.log("Password 1", credentials.password);
+            console.log("Password 2", user.password); // Missing
+            return null;
+          }
+
+          // Compare password hashes
+          const isMatch = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+          console.log(isMatch);
+
+          // If password doesn't match, return null
+          if (!isMatch) {
+            console.log("Invalid password");
+            return null;
+          }
+
+          // If everything is good, return the user
           return user;
         } catch (error) {
-          // console.error(error);
+          console.error("Error during authorization:", error);
+          return null;
         }
       },
     }),

@@ -3,6 +3,7 @@ import { RegisterSchema } from "@/schemas/index"; // Ensure correct import path
 import { dbConnect } from "@/lib/mongo";
 import bcrypt from "bcrypt";
 import { createUser } from "@/queries/users";
+import { User } from "@/model/user-model";
 
 export const POST = async (request: Request): Promise<NextResponse> => {
   try {
@@ -21,6 +22,14 @@ export const POST = async (request: Request): Promise<NextResponse> => {
     }
     // Destructure Data
     const { name, email, password } = validatedFields.data;
+    // Find Duplicate
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return NextResponse.json(
+        { error: `User Already Exists!` },
+        { status: 500 }
+      );
+    }
     // Create a DB Connection
     await dbConnect();
     // Encrypt the Password
