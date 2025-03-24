@@ -1,11 +1,11 @@
-import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
-import GitHub from "next-auth/providers/github";
-import Credentials from "next-auth/providers/credentials";
-import { LoginSchema } from "@/schemas";
-import * as z from "zod";
 import { User } from "@/model/user-model";
+import { LoginSchema } from "@/schemas";
 import bcrypt from "bcrypt";
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import GitHub from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
+import * as z from "zod";
 
 export const {
   handlers: { GET, POST },
@@ -15,60 +15,49 @@ export const {
 } = NextAuth({
   session: {
     strategy: "jwt",
+    maxAge: 60 * 60, // 1 Hour
   },
   providers: [
     Credentials({
       async authorize(credentials: z.infer<typeof LoginSchema>) {
-        if (!credentials) {
-          return null;
-        }
+        if (!credentials) throw new Error("Invalid credentials");
 
         try {
-          // Find user by email
-          const user = await User.findOne({ email: credentials.email }).select(
-            "+password"
-          );
-          console.log(user);
+          // Validate user input with Zod
+          const parsed = LoginSchema.safeParse(credentials);
+          if (!parsed.success) throw new Error("Invalid input format");
 
-          // If no user is found, return null
-          if (!user) {
-            console.log("User not found");
-            return null;
-          }
-          // Ensure passwords exist
-          if (!credentials.password || !user.password) {
-            console.log("Password is missing");
-            console.log("Password 1", credentials.password);
-            console.log("Password 2", user.password); // Missing
-            return null;
-          }
+          const { email, password } = parsed.data;
 
-          // Compare password hashes
-          const isMatch = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-          console.log(isMatch);
+          // Find user by email (ensure password is selected)
+          const user = await User.findOne({ email })
+            .select("+password")
+            .select("+name");
+          if (!user || !user.password) throw new Error("Invalid credentials");
 
-          // If password doesn't match, return null
-          if (!isMatch) {
-            console.log("Invalid password");
-            return null;
-          }
+          // Compare provided password with hashed password
+          const isMatch = await bcrypt.compare(password, user.password);
+          if (!isMatch) throw new Error("Invalid credentials");
 
-          // If everything is good, return the user
-          return user;
+          // Return user details without password
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            role: user.role || "user", // Default role
+          };
         } catch (error) {
           console.error("Error during authorization:", error);
-          return null;
+          throw new Error("Invalid credentials"); // Generic error message
         }
       },
     }),
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
+          scope: "openid email profile", // Minimal required scopes
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
@@ -76,10 +65,11 @@ export const {
       },
     }),
     GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
       authorization: {
         params: {
+          scope: "read:user user:email", // Minimal required scopes
           prompt: "consent",
           access_type: "offline",
           response_type: "code",
@@ -87,4 +77,28 @@ export const {
       },
     }),
   ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.role = user.role || "user";
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      session.user.id = token.id;
+      session.user.email = token.email;
+      session.user.name = token.name;
+      session.user.role = token.role;
+      return session;
+    },
+  },
+  pages: {
+    signIn: "/auth/login",
+    error: "/auth/error", // Custom error page
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development", // Disable in production
 });

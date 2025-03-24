@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 const Home = async () => {
   const session = await auth();
+  console.log(session);
   if (!session?.user) redirect("/");
   return (
     <main className="flex flex-col h-full justify-center items-center bg-gradient-to-r from-blue-800 via-sky-500  to-blue-800">
