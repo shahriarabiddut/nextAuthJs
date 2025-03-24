@@ -18,7 +18,7 @@ import { FormError } from "@/components/form-error";
 import { FormSuccess } from "@/components/form-success";
 // import { register } from "@/actions/register";
 import { useState, useTransition } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 export default function RegisterForm() {
   const [error, setError] = useState<string | undefined>("");
@@ -37,7 +37,7 @@ export default function RegisterForm() {
     setError("");
     setSuccess("");
     startTransition(async () => {
-      console.log(values);
+      // console.log(values);
       try {
         const response = await fetch(`/api/register`, {
           method: "POST",
@@ -46,8 +46,13 @@ export default function RegisterForm() {
           },
           body: JSON.stringify(values),
         });
-        console.log(response);
+        // console.log(response);
+        // response.status === 201 && router.push("/");
+        const data = await response.json();
+        response.status === 201 && setSuccess(data.success);
+        response.status !== 201 && setError(data.error);
       } catch (e) {
+        setError(`Something Went Wrong!`);
         console.error(e);
       }
       // register(values).then((data) => {
