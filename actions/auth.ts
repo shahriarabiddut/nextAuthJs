@@ -77,19 +77,33 @@ export const {
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // The `user` object is returned after successful login - Testing Token
+      // console.log("JWT Callback - User:", user);
+      // console.log("JWT Callback - Token:", token);
+      // Testing Purpose
       if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
-        token.role = user.role || "user";
+        return {
+          ...token,
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role || "user",
+          issuedAt: Date.now(),
+        };
       }
       return token;
     },
     async session({ session, token }) {
-      session.user.id = token.id;
-      session.user.email = token.email;
-      session.user.name = token.name;
-      session.user.role = token.role;
+      // This is where session data is passed to the client - Testing Token
+      // console.log("Session Callback - Token:", token);
+      // Testing Purpose
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.email = token.email;
+        session.user.name = token.name;
+        session.user.role = token.role;
+        session.user.issuedAt = token.issuedAt;
+      }
       return session;
     },
   },
@@ -99,4 +113,19 @@ export const {
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development", // Disable in production
+  cookies: {
+    sessionToken: {
+      name:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-next-auth.session-token"
+          : "next-auth.session-token", // Non-secure name for development
+      options: {
+        httpOnly: true, // Prevents JavaScript access
+        secure: true, // Always secure, even in development
+        sameSite: "lax", // Change to "strict" if session loss occurs
+        path: "/", // Available across the entire site
+        domain: process.env.AUTH_COOKIE_DOMAIN || undefined, // Custom domain if needed
+      },
+    },
+  },
 });

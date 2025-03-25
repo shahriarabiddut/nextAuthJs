@@ -6,7 +6,7 @@ import { dbConnect } from "@/lib/mongo";
 export const GET = async (request) => {
   const session = await auth();
   if (!session?.user) {
-    return new NextResponse(`You are not Authenticated!`, {
+    return new NextResponse(`Forbidden Access!`, {
       status: 500,
     });
   }
