@@ -7,3 +7,8 @@ export async function createUser(newuser: any) {
     throw new Error(error);
   }
 }
+
+export async function getUserByEmail(email: string) {
+  const user = await User.findOne({ email }).select("-updatedAt").lean();
+  return user;
+}
