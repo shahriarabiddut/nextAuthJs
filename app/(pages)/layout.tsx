@@ -16,11 +16,11 @@ export default async function PageLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Check User
-  const session = await auth();
-  console.log(session);
-  //   if (!session?.user) <>Loading......</>;
-  if (!session?.user) redirect("/");
+  // Check User --- Middleware deprecated them
+  //   const session = await auth();
+  //   console.log(session);
+  //   //   if (!session?.user) <>Loading......</>;
+  //   if (!session?.user) redirect("/");
   // Check User Ends
   return (
     <main className="flex flex-col h-full justify-center items-center bg-gradient-to-r from-blue-800 via-sky-500  to-blue-800">
