@@ -1,12 +1,9 @@
 import { auth } from "@/actions/auth";
 import LogoutButton from "@/components/auth/logout-button";
 import { cn } from "@/lib/utils";
-import { redirect } from "next/navigation";
 
 const Home = async () => {
   const session = await auth();
-  console.log(session);
-  if (!session?.user) redirect("/");
   return (
     <main className="flex flex-col h-full justify-center items-center bg-gradient-to-r from-blue-800 via-sky-500  to-blue-800">
       <div className="space-y-6 flex flex-col  justify-center items-center">

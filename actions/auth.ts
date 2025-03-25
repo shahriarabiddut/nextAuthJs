@@ -6,6 +6,7 @@ import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 import * as z from "zod";
+import { authConfig } from "@/actions/auth.config";
 
 export const {
   handlers: { GET, POST },
@@ -13,10 +14,7 @@ export const {
   signIn,
   signOut,
 } = NextAuth({
-  session: {
-    strategy: "jwt",
-    maxAge: 60 * 60, // 1 Hour
-  },
+  ...authConfig,
   providers: [
     Credentials({
       async authorize(credentials: z.infer<typeof LoginSchema>) {
