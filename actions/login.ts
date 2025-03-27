@@ -13,7 +13,7 @@ export const login = async (values: z.infer<typeof LoginSchema>) => {
 
 export async function doSocialLogin(formdata: any) {
   const action = formdata.get("action");
-  await signIn(action, { redirectTo: "/home" });
+  await signIn(action, { redirectTo: "/dashboard" });
   console.log(action);
 }
 

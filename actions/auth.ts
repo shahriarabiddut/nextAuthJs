@@ -1,4 +1,4 @@
-import { User } from "@/model/user-model";
+import { User } from "@/model/User";
 import { LoginSchema } from "@/schemas";
 import bcrypt from "bcrypt";
 import NextAuth from "next-auth";
@@ -7,6 +7,7 @@ import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 import * as z from "zod";
 import { authConfig } from "@/actions/auth.config";
+import { BlacklistedToken } from "@/model/Blacklisted";
 
 export const {
   handlers: { GET, POST },
@@ -17,7 +18,7 @@ export const {
   ...authConfig,
   providers: [
     Credentials({
-      async authorize(credentials: z.infer<typeof LoginSchema>) {
+      authorize: async (credentials) => {
         if (!credentials) throw new Error("Invalid credentials");
 
         try {
@@ -31,7 +32,14 @@ export const {
           const user = await User.findOne({ email })
             .select("+password")
             .select("+name");
-          if (!user || !user.password) throw new Error("Invalid credentials");
+          if (
+            !user ||
+            !user.password ||
+            !(await bcrypt.compare(password, user.password))
+          ) {
+            await new Promise((resolve) => setTimeout(resolve, 1000)); // Introduce delay
+            throw new Error("Invalid credentials");
+          }
 
           // Compare provided password with hashed password
           const isMatch = await bcrypt.compare(password, user.password);
@@ -76,11 +84,22 @@ export const {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       // The `user` object is returned after successful login - Testing Token
       // console.log("JWT Callback - User:", user);
       // console.log("JWT Callback - Token:", token);
       // Testing Purpose
+
+      if (!token) return null;
+      // Check if token is blacklisted
+      const blacklisted = await BlacklistedToken.findOne({
+        token: token.sessionToken,
+      });
+
+      if (blacklisted) {
+        throw new Error("Session Expired. Please log in again.");
+      }
+
       if (user) {
         return {
           ...token,
@@ -111,21 +130,40 @@ export const {
     signIn: "/auth/login",
     error: "/auth/error", // Custom error page
   },
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development", // Disable in production
-  cookies: {
-    sessionToken: {
-      name:
-        process.env.NODE_ENV === "production"
-          ? "__Secure-next-auth.session-token"
-          : "next-auth.session-token", // Non-secure name for development
+  // Add these NEW security properties here:
+  useSecureCookies: process.env.NODE_ENV === "production",
+  csrf: {
+    methods: ["POST", "PUT", "DELETE", "GET"], // Protects only GIVEN requests (login/submissions)
+    cookie: {
+      name: "next-auth.csrf-token",
       options: {
-        httpOnly: true, // Prevents JavaScript access
-        secure: true, // Always secure, even in development
-        sameSite: "lax", // Change to "strict" if session loss occurs
-        path: "/", // Available across the entire site
-        domain: process.env.AUTH_COOKIE_DOMAIN || undefined, // Custom domain if needed
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
       },
     },
   },
+
+  // Cookie Settings - Not Necessary ! NextAuth Deals Deafult Way
+  // cookies: {
+  //   sessionToken: {
+  //     name:
+  //       process.env.NODE_ENV === "production"
+  //         ? "__Secure-next-auth.session-token"
+  //         : "next-auth.session-token",
+  //     options: {
+  //       httpOnly: true,
+  //       secure: process.env.NODE_ENV === "production",
+  //       sameSite: "lax",
+  //       path: "/",
+  //       domain:
+  //         process.env.NODE_ENV === "production"
+  //           ? process.env.AUTH_COOKIE_DOMAIN
+  //           : undefined,
+  //     },
+  //   },
+  // },
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development", // Disable in production
 });

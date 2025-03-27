@@ -6,6 +6,7 @@ export const authConfig = {
   },
   jwt: {
     secret: process.env.NEXTAUTH_SECRET,
+    encryption: true,
   },
   providers: [],
 };
